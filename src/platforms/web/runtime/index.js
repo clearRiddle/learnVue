@@ -1,3 +1,4 @@
+// 主要是一些平台特性的载入
 /* @flow */
 
 import Vue from 'core/index'
@@ -20,6 +21,7 @@ import platformDirectives from './directives/index'
 import platformComponents from './components/index'
 
 // install platform specific utils
+// 载入平台的特性工具
 Vue.config.mustUseProp = mustUseProp
 Vue.config.isReservedTag = isReservedTag
 Vue.config.isReservedAttr = isReservedAttr
@@ -27,13 +29,16 @@ Vue.config.getTagNamespace = getTagNamespace
 Vue.config.isUnknownElement = isUnknownElement
 
 // install platform runtime directives & components
+// 平台指令集及组件及覆盖式合并Vue.option
 extend(Vue.options.directives, platformDirectives)
 extend(Vue.options.components, platformComponents)
 
 // install platform patch function
+// 如果在浏览器环境中进行空操作，否则安装平台补丁
 Vue.prototype.__patch__ = inBrowser ? patch : noop
 
 // public mount method
+// 向原型链上挂载$mount方法
 Vue.prototype.$mount = function (
   el?: string | Element,
   hydrating?: boolean
@@ -45,7 +50,9 @@ Vue.prototype.$mount = function (
 // devtools global hook
 /* istanbul ignore next */
 if (inBrowser) {
+  // 写入宏任务
   setTimeout(() => {
+    // 开发者工具存在且开启则发送init事件
     if (config.devtools) {
       if (devtools) {
         devtools.emit('init', Vue)
@@ -59,6 +66,7 @@ if (inBrowser) {
         )
       }
     }
+    // 提示安装开发者工具
     if (process.env.NODE_ENV !== 'production' &&
       process.env.NODE_ENV !== 'test' &&
       config.productionTip !== false &&

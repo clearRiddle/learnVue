@@ -1771,6 +1771,8 @@ var useMacroTask = false;
 // in IE. The only polyfill that consistently queues the callback after all DOM
 // events triggered in the same loop is by using MessageChannel.
 /* istanbul ignore if */
+// 确认宏任务延时方案
+// 如果setImmediate存在且为内置方法，则用其缓冲回调
 if (typeof setImmediate !== 'undefined' && isNative(setImmediate)) {
   macroTimerFunc = function () {
     setImmediate(flushCallbacks);
@@ -1795,6 +1797,7 @@ if (typeof setImmediate !== 'undefined' && isNative(setImmediate)) {
 
 // Determine microtask defer implementation.
 /* istanbul ignore next, $flow-disable-line */
+// 如果Promise存在且为内置对象，则用其缓冲回调，否则用宏任务代替微任务
 if (typeof Promise !== 'undefined' && isNative(Promise)) {
   var p = Promise.resolve();
   microTimerFunc = function () {
@@ -1819,7 +1822,9 @@ if (typeof Promise !== 'undefined' && isNative(Promise)) {
 
 function nextTick (cb, ctx) {
   var _resolve;
+  // 向回调栈中推入函数
   callbacks.push(function () {
+    // 如果回调存在则执行
     if (cb) {
       try {
         cb.call(ctx);
@@ -1827,11 +1832,14 @@ function nextTick (cb, ctx) {
         handleError(e, ctx, 'nextTick');
       }
     } else if (_resolve) {
+      // 否则调用异步的resolve
       _resolve(ctx);
     }
   });
   if (!pending) {
+    // 如果不在等待状态中，则将等待状态置为true
     pending = true;
+    // 优先调用微任务进行回调栈执行缓冲，如果不存在Promise，则使用宏任务
     if (useMacroTask) {
       macroTimerFunc();
     } else {
@@ -1839,7 +1847,9 @@ function nextTick (cb, ctx) {
     }
   }
   // $flow-disable-line
+  // 如果回调不存在，且环境中存在Promise
   if (!cb && typeof Promise !== 'undefined') {
+    // 创建一个promise，并将resolve赋值给_resolve
     return new Promise(function (resolve) {
       _resolve = resolve;
     })

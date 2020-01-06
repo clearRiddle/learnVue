@@ -307,15 +307,20 @@ function createWatcher (
   options?: Object
 ) {
   if (isPlainObject(handler)) {
+    // 如果第三个参数为对象，则将该参数赋值给options，且将该对象的handler属性赋值给handler参数
     options = handler
     handler = handler.handler
   }
   if (typeof handler === 'string') {
+    // 如果handler参数为字符串，则取实例的该属性进行赋值
     handler = vm[handler]
   }
+  // 返回该实例的$watch调用
   return vm.$watch(expOrFn, handler, options)
 }
+/*
 
+*/
 export function stateMixin (Vue: Class<Component>) {
   // flow somehow has problems with directly declared definition object
   // when using Object.defineProperty, so we have to procedurally build up
@@ -347,13 +352,19 @@ export function stateMixin (Vue: Class<Component>) {
     cb: any,
     options?: Object
   ): Function {
+    // 将上下文环境赋值给vm
     const vm: Component = this
+    // 如果回调是一个对象，则递归创建监测
     if (isPlainObject(cb)) {
       return createWatcher(vm, expOrFn, cb, options)
     }
     options = options || {}
+    // 将user属性置为true
     options.user = true
+    // 用实例，表达式，回调及参数项实例化一个watcher
     const watcher = new Watcher(vm, expOrFn, cb, options)
+    // 如果immediate属性存在，则尝试立即用回调函数绑定上下文环境进行执行
+    // 调用失败则进行报错
     if (options.immediate) {
       try {
         cb.call(vm, watcher.value)
@@ -361,6 +372,7 @@ export function stateMixin (Vue: Class<Component>) {
         handleError(error, vm, `callback for immediate watcher "${watcher.expression}"`)
       }
     }
+    // 返回该监测的卸载函数
     return function unwatchFn () {
       watcher.teardown()
     }

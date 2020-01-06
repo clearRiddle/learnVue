@@ -63,13 +63,17 @@ export function renderMixin (Vue: Class<Component>) {
   installRenderHelpers(Vue.prototype)
 
   Vue.prototype.$nextTick = function (fn: Function) {
+    // 如果存在回调，则在执行时调用
+    // 否则返回一个Promise，执行时将该Promise的状态置为fulfilled
     return nextTick(fn, this)
   }
 
   Vue.prototype._render = function (): VNode {
     const vm: Component = this
+    // 解构赋值render及_parentVnode
     const { render, _parentVnode } = vm.$options
 
+    // 如果_parentVnode属性存在，进行插槽序列化
     if (_parentVnode) {
       vm.$scopedSlots = normalizeScopedSlots(
         _parentVnode.data.scopedSlots,

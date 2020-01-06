@@ -95,6 +95,7 @@ export function mergeDataOrFn (
     // check if parentVal is a function here because
     // it has to be a function to pass previous merges.
     return function mergedDataFn () {
+      // 子选项覆盖式合并其父选项
       return mergeData(
         typeof childVal === 'function' ? childVal.call(this, this) : childVal,
         typeof parentVal === 'function' ? parentVal.call(this, this) : parentVal
@@ -188,6 +189,7 @@ function mergeAssets (
 ): Object {
   const res = Object.create(parentVal || null)
   if (childVal) {
+    // 非生产环境且childVal类型为对象
     process.env.NODE_ENV !== 'production' && assertObjectType(key, childVal, vm)
     return extend(res, childVal)
   } else {
@@ -205,6 +207,8 @@ ASSET_TYPES.forEach(function (type) {
  * Watchers hashes should not overwrite one
  * another, so we merge them as arrays.
  */
+
+ // 监测合并
 strats.watch = function (
   parentVal: ?Object,
   childVal: ?Object,
@@ -225,9 +229,11 @@ strats.watch = function (
   for (const key in childVal) {
     let parent = ret[key]
     const child = childVal[key]
+    // 父参数存在且其不为数组，则将其赋值为数组
     if (parent && !Array.isArray(parent)) {
       parent = [parent]
     }
+    // 父参数存在则将其子参数进行合并，否则返回子参数的数组形式
     ret[key] = parent
       ? parent.concat(child)
       : Array.isArray(child) ? child : [child]
@@ -247,13 +253,16 @@ strats.computed = function (
   vm?: Component,
   key: string
 ): ?Object {
+  // 不在生产环境时对子选项的类型进行断言，不为对象时抛出警告
   if (childVal && process.env.NODE_ENV !== 'production') {
     assertObjectType(key, childVal, vm)
   }
+  // 父选项不存在时返回子选项
   if (!parentVal) return childVal
   const ret = Object.create(null)
   extend(ret, parentVal)
   if (childVal) extend(ret, childVal)
+  // 用子选项覆盖式拓展父选项
   return ret
 }
 strats.provide = mergeDataOrFn
@@ -261,6 +270,7 @@ strats.provide = mergeDataOrFn
 /**
  * Default strategy.
  */
+// 子项存在则返回否则返回父项
 const defaultStrat = function (parentVal: any, childVal: any): any {
   return childVal === undefined
     ? parentVal
@@ -336,11 +346,13 @@ function normalizeInject (options: Object, vm: ?Component) {
   const inject = options.inject
   if (!inject) return
   const normalized = options.inject = {}
+  // 如果是数组则解析为对象形式
   if (Array.isArray(inject)) {
     for (let i = 0; i < inject.length; i++) {
       normalized[inject[i]] = { from: inject[i] }
     }
   } else if (isPlainObject(inject)) {
+    // 如果inject本身为对象，则进行遍历解析
     for (const key in inject) {
       const val = inject[key]
       normalized[key] = isPlainObject(val)
@@ -364,6 +376,7 @@ function normalizeDirectives (options: Object) {
   if (dirs) {
     for (const key in dirs) {
       const def = dirs[key]
+      // 如果键值为function类型，则将该函数同时绑定给bind和update两个钩子函数
       if (typeof def === 'function') {
         dirs[key] = { bind: def, update: def }
       }
@@ -385,21 +398,32 @@ function assertObjectType (name: string, value: any, vm: ?Component) {
  * Merge two option objects into a new one.
  * Core utility used in both instantiation and inheritance.
  */
+
+/*
+进行子操作项的序列化过程（将props，inject，directive等可以进行简化参数传递的进行标准序列化）
+如果子选项存在混入或者拓展，则将其混入和拓展的部分继续与其父操作项进行合并，
+直到子项为基本数据项
+对父操作项与子操作项进行数据域合并后，用子操作项覆盖式合并父操作项
+*/
 export function mergeOptions (
   parent: Object,
   child: Object,
   vm?: Component
 ): Object {
+  // 非生产环境进行组件检测
   if (process.env.NODE_ENV !== 'production') {
     checkComponents(child)
   }
-
+  // 子组件为函数，则将其赋值为其options
   if (typeof child === 'function') {
     child = child.options
   }
-
+  
+  // 将props序列化为对象形式，进行赋值解析
   normalizeProps(child, vm)
+  // inject序列化
   normalizeInject(child, vm)
+  // directive序列化，解析其bind和upload的简写形式
   normalizeDirectives(child)
 
   // Apply extends and mixins on the child options,
@@ -407,15 +431,18 @@ export function mergeOptions (
   // the result of another mergeOptions call.
   // Only merged options has the _base property.
   if (!child._base) {
+    // 如果子项_base为false且存在extends，则遍历解析父项
     if (child.extends) {
       parent = mergeOptions(parent, child.extends, vm)
     }
+    // 如果不为基础项，且存在混入，则遍历后递归解析父项
     if (child.mixins) {
       for (let i = 0, l = child.mixins.length; i < l; i++) {
         parent = mergeOptions(parent, child.mixins[i], vm)
       }
     }
   }
+
 
   const options = {}
   let key
@@ -428,9 +455,11 @@ export function mergeOptions (
     }
   }
   function mergeField (key) {
+    // 数据域合并并赋值
     const strat = strats[key] || defaultStrat
     options[key] = strat(parent[key], child[key], vm, key)
   }
+  // 返回合并后数据
   return options
 }
 

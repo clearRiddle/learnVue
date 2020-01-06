@@ -42,15 +42,19 @@ export function invokeWithErrorHandling (
 ) {
   let res
   try {
+    // 参数存在，则传入参数在上下文中调用，否则直接调用
     res = args ? handler.apply(context, args) : handler.call(context)
+    // 如果回调存在，_isVue属性不为true，且返回值为promise，进行报错
     if (res && !res._isVue && isPromise(res)) {
       // issue #9511
       // reassign to res to avoid catch triggering multiple times when nested calls
       res = res.catch(e => handleError(e, vm, info + ` (Promise/async)`))
     }
   } catch (e) {
+    // 调用失败则抛出错误
     handleError(e, vm, info)
   }
+  // 返回回调执行的返回值
   return res
 }
 
